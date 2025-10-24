@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Полная версия модели на сервере
+  tux-ai-full:
+    build:
+      context: .
+      dockerfile: Dockerfile.full
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_MODE=full
+      - CUDA_VISIBLE_DEVICES=0,1
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 2
+              capabilities: [gpu]
+
+  # Урезанная версия для локального использования
+  tux-ai-lite:
+    build:
+      context: .
+      dockerfile: Dockerfile.lite
+    ports:
+      - "8001:8000"
+    environment:
+      - MODEL_MODE=lite
+    volumes:
+      - ./models/lite:/app/models
+      - ./data:/app/data
+
+  # База данных для знаний
+  knowledge-db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=tux_ai
+      - POSTGRES_USER=tux
+      - POSTGRES_PASSWORD=tux_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+
+volumes:
+  postgres_data:
